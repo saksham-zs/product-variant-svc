@@ -1,7 +1,10 @@
 package products
 
 import (
+	"gofr.dev/pkg/errors"
 	"gofr.dev/pkg/gofr"
+
+	"product-variant-svc/models"
 	"product-variant-svc/services"
 )
 
@@ -14,13 +17,39 @@ func New(s services.Products) handler {
 }
 
 func (h handler) Create(ctx *gofr.Context) (interface{}, error) {
-	return nil, nil
+	var p models.Product
+
+	err := ctx.Bind(&p)
+	if err != nil {
+		return nil, errors.InvalidParam{Param: []string{"Request Body"}}
+	}
+
+	resp, err := h.service.Create(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }
 
 func (h handler) GetAll(ctx *gofr.Context) (interface{}, error) {
-	return nil, nil
+	params := ctx.Params()
+
+	resp, err := h.service.GetAll(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }
 
 func (h handler) GetByID(ctx *gofr.Context) (interface{}, error) {
-	return nil, nil
+	pid := ctx.PathParam("pid")
+
+	resp, err := h.service.GetByID(ctx, pid)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }

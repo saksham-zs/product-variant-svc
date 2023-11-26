@@ -15,19 +15,21 @@ import (
 func main() {
 	app := gofr.New()
 
-	// initialize products instance
+	// initialize products & variants instance
+	variantStore := variantsStores.New()
 	productStore := productsStores.New()
-	productService := productsServices.New(productStore)
+
+	variantService := variantsServices.New(variantStore, productStore)
+	productService := productsServices.New(productStore, variantStore)
+
+	variantHandler := variantsHandlers.New(variantService)
 	productHandler := productsHandlers.New(productService)
 
-	// initialize variants instance
-	variantStore := variantsStores.New()
-	variantService := variantsServices.New(variantStore)
-	variantHandler := variantsHandlers.New(variantService)
+	app.POST("/product", productHandler.Create)                     // Create Product
+	app.GET("/product/{pid}", productHandler.GetByID)               // Get Product Details (including all variants) by ID
+	app.GET("/product", productHandler.GetAll)                      // Filter and list Products
+	app.POST("/product/{pid}/variant", variantHandler.Create)       // Create Variant for Product
+	app.GET("/product/{pid}/variant/{vid}", variantHandler.GetByID) // Get Variant by ID
 
-	app.POST("/product", productHandler.Create)                      // Create Product
-	app.GET("/product/{pid}", productHandler.GetByID)                // Get Product Details (including all variants) by ID
-	app.GET("/product", productHandler.GetAll)                       // Filter and list Products
-	app.POST("/product/{pid}/variant", variantHandler.Create)        // Create Variant for Product
-	app.GET(" /product/{pid}/variant/{vid}", variantHandler.GetByID) // Get Variant by ID
+	app.Start()
 }
