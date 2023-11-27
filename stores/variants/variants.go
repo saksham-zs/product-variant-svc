@@ -31,15 +31,7 @@ func (s store) Create(ctx *gofr.Context, pid int, v models.Variant) (int64, erro
 }
 
 func (s store) GetByID(ctx *gofr.Context, productID int, variantID int) (v models.Variant, err error) {
-	whereClause := generateWhereClause(productID, variantID)
-
-	switch variantID {
-	case 0:
-		err = ctx.DB().QueryRowContext(ctx, getVariantByID+whereClause, productID).Scan(&v.ID, &v.Name, &v.Details)
-	default:
-		err = ctx.DB().QueryRowContext(ctx, getVariantByID+whereClause, productID, variantID).Scan(&v.ID, &v.Name, &v.Details)
-	}
-
+	err = ctx.DB().QueryRowContext(ctx, getVariantByID, productID, variantID).Scan(&v.ID, &v.Name, &v.Details)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return v, sql.ErrNoRows
@@ -51,23 +43,24 @@ func (s store) GetByID(ctx *gofr.Context, productID int, variantID int) (v model
 	return v, nil
 }
 
-func generateWhereClause(pid, vid int) (clause string) {
-	var flag = false
-	clause = " WHERE "
-
-	if pid != 0 {
-		clause += "product_id=?"
-		flag = true
+func (s store) GetAllByProductID(ctx *gofr.Context, productID int) (variants []models.Variant, err error) {
+	rows, err := ctx.DB().QueryContext(ctx, getVariantsByProductID, productID)
+	if err != nil {
+		return nil, errors.DB{Err: err}
 	}
 
-	// check for when GetByID call's done from another service
-	if vid != 0 {
-		if flag {
-			clause += " AND "
+	defer rows.Close()
+
+	for rows.Next() {
+		var variant models.Variant
+
+		err = rows.Scan(&variant.ID, &variant.Name, &variant.Details)
+		if err != nil {
+			return nil, errors.DB{Err: err}
 		}
 
-		clause += "id=?"
+		variants = append(variants, variant)
 	}
 
-	return clause
+	return variants, nil
 }

@@ -17,7 +17,7 @@ func main() {
 
 	// initialize products & variants instance
 	variantStore := variantsStores.New()
-	productStore := productsStores.New()
+	productStore := productsStores.New(variantStore)
 
 	variantService := variantsServices.New(variantStore, productStore)
 	productService := productsServices.New(productStore, variantStore)

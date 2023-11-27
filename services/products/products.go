@@ -54,7 +54,7 @@ func (s service) GetByID(ctx *gofr.Context, pid string) (models.ProductWithVaria
 		return models.ProductWithVariantsResponse{}, err
 	}
 
-	variant, err := s.variantStore.GetByID(ctx, productID, 0)
+	variants, err := s.variantStore.GetAllByProductID(ctx, productID)
 	if err != nil {
 		ctx.Logger.Errorf("Error while getting variant details by productID: %v in services/product/GetByID. Err: %v", productID, err)
 
@@ -63,41 +63,39 @@ func (s service) GetByID(ctx *gofr.Context, pid string) (models.ProductWithVaria
 		}
 	}
 
-	return models.ProductWithVariantsResponse{ProductDetails: product, VariantDetails: []models.Variant{variant}}, nil
+	return models.ProductWithVariantsResponse{ProductDetails: product, VariantDetails: variants}, nil
 }
 
-func (s service) GetAll(ctx *gofr.Context, params map[string]string) ([]models.ProductWithVariantsResponse, error) {
-	//TODO implement me
-	panic("implement me")
+func (s service) GetAll(ctx *gofr.Context, params map[string]string) (resp []models.ProductsWithVariantsResponse, err error) {
+	filters := populateFilters(ctx, params)
+	if err != nil {
+		ctx.Logger.Errorf("Err: %v", err)
+	}
+
+	resp, err = s.productStore.GetAllProductsWithVariants(ctx, filters)
+	if err != nil {
+		ctx.Logger.Errorf("Error while getting products & variants details in services.products/GetAllProductsWithVariants. Err: %v", err)
+
+		return nil, err
+	}
+
+	return resp, nil
 }
 
-//func (s service) GetAll(ctx *gofr.Context, params map[string]string) ([]models.ProductWithVariantsResponse, error) {
-//	filters, err := populateFilters(ctx, params)
-//	if err != nil {
-//		ctx.Logger.Errorf("Error while populating filters in services.products/GetAll. Err: %v", err)
-//	}
-//
-//	resp, err := s.productStore.GetProductsWithVariants(ctx, filters)
-//	if err != nil {
-//		ctx.Logger.Errorf("Error while getting product & variants details in services.products/GetAll. Err: %v", err)
-//		return nil, err
-//	}
-//
-//	return resp, nil
-//}
+func populateFilters(ctx *gofr.Context, params map[string]string) (filters models.Filters) {
+	var err error
 
-//func populateFilters(ctx *gofr.Context, paramsMap map[string]string) (filters models.Filters, err error) {
-//	params, err := json.Marshal(paramsMap)
-//	if err != nil {
-//		ctx.Logger.Errorf("Error while marshalling params map in services/products/GetAll. Err: %v", err)
-//		return filters, err
-//	}
-//
-//	err = json.Unmarshal(params, &filters)
-//	if err != nil {
-//		ctx.Logger.Errorf("Error while un-marshalling params in services/products/GetAll. Err: %v", err)
-//		return filters, err
-//	}
-//
-//	return filters, nil
-//}
+	filters.ProductID, err = strconv.Atoi(params["productId"])
+	if err != nil {
+		ctx.Logger.Errorf("Error while converting productID to int. Err: %v", err)
+	}
+
+	filters.VariantID, err = strconv.Atoi(params["variantId"])
+	if err != nil {
+		ctx.Logger.Errorf("Error while converting variantId to int. Err: %v", err)
+	}
+
+	filters.ProductName = params["productName"]
+
+	return filters
+}
